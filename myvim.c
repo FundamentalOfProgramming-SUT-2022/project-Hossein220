@@ -271,7 +271,6 @@ void remove2(char *add,int line,int ch,int sz,char mode){
         fclose(file_tmp);
 }
 
-
 void my_remove(char *add,int line,int ch,int sz,char mode){
     if(access(add, F_OK ) == -1){
         if(check_add(add) == 1)
@@ -762,9 +761,100 @@ void my_undo(char* add){
         remove(add);
         return;
     }
-    file_copy(add,"tmp2.txt");
+    file_copy(add,"tmp.txt");
     file_copy(add+1,add);
-    file_copy("tmp2.txt",add+1);
+    file_copy("tmp.txt",add+1);
+}
+
+void put_enter_and_space(char*add){
+    file_copy(add,"tmp.txt");
+    FILE* file = fopen(add,"w+");
+    FILE* tmp = fopen("tmp.txt","r+");
+        char c = getc(tmp);
+        char cc = ' ',ccc = ' ';
+        int num_space = 0;
+        while(c!=EOF){
+            if(cc == '\n' && c == ' '){
+                c = getc(tmp);
+                continue;
+            }
+            if(c == ' '){
+                num_space ++;
+            }
+            if(c != ' ' && num_space > 0){
+                if(c == '{'){
+                    putc(' ',file);
+                }
+                else
+                for(int i = 0;i<num_space;i++){
+                    putc(' ',file);
+                }
+                num_space = 0;
+            }
+            if(cc != ' ' && cc!= '\n' && c == '{'){
+                putc(' ',file);
+            }
+            if(cc == '{' && c != '\n'){
+                putc('\n',file);
+            }
+            if(cc != '\n' && c == '}'){
+                putc('\n',file);
+            }
+            else if(cc == '}' && c != '\n'){
+                putc('\n',file);
+            }
+            if(ccc == '{' && cc == '\n' && c == '}'){
+                putc('\n',file);
+            }
+            if(c != ' ') putc(c,file);
+            ccc = cc;
+            cc = c;
+            c = getc(tmp);
+        }
+    fclose(file);
+    fclose(tmp);
+}
+
+void put_tab(char*add){
+    file_copy(add,"tmp.txt");
+    FILE* file = fopen(add,"w+");
+    FILE* tmp = fopen("tmp.txt","r+");
+        char c = getc(tmp);
+        char cc = ' ';
+        int nn = 0;
+        while(c!=EOF){
+            if(c == '}') nn--;
+            if(cc == '\n'){
+                if(c == ' '){
+                    c = getc(tmp);
+                    continue;
+                }
+                for(int j = 0;j<4*nn;j++){
+                    putc(' ',file);
+                }
+            }
+            if(c == '{') nn++;
+            putc(c,file);
+            cc = c;
+            c = getc(tmp);
+        }
+    fclose(file);
+    fclose(tmp);
+}
+
+my_auto_indent(char*add){
+    if(access(add, F_OK ) == -1){
+        if(check_add(add) == 1)
+            printf("The file haven't been created before!\n");
+        else
+            printf("Incorrect Address!\n");
+        return;
+    }
+    else{
+        file_copy(add,add+1);
+        put_enter_and_space(add);
+        put_tab(add);
+    }
 }
 
 int main(){
@@ -896,6 +986,10 @@ int main(){
 
         else if(strcmp(*(line),"undo") == 0 && strcmp(*(line +1 ),"-file") == 0 && num_of_word == 3){
             my_undo(*(line+2));
+        }
+
+        else if(strcmp(*(line),"auto-indent") == 0 && strcmp(*(line +1 ),"-file") == 0 && num_of_word == 3){
+            my_auto_indent(*(line+2));
         }
 
         else{
