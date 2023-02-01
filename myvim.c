@@ -493,6 +493,17 @@ int chars_of_file(char *a){
     fclose(f);
     return counter;
 }
+int enters_of_file(char *a){
+    int counter = 0;
+    FILE* f = fopen(a,"r+");
+    char c = getc(f);
+    while(c!=EOF){
+        if(c == '\n') counter++;
+        c = getc(f);
+    }
+    fclose(f);
+    return counter;
+}
 
 void my_find(char* text,char* add,int mode,int num){
     if(access(add, F_OK ) == -1){
@@ -857,6 +868,84 @@ my_auto_indent(char*add){
     }
 }
 
+void file_compare(char*add1,char*add2){
+    if(access(add1, F_OK ) == -1){
+        if(check_add(add1) == 1)
+            printf("The file 1 haven't been created before!\n");
+        else
+            printf("Incorrect Address 1!\n");
+        return;
+    }
+    else if(access(add2, F_OK ) == -1){
+        if(check_add(add2) == 1)
+            printf("The file 2 haven't been created before!\n");
+        else
+            printf("Incorrect Address 2!\n");
+        return;
+    }
+    else{
+        int e1 = enters_of_file(add1);
+        int e2 = enters_of_file(add2);
+        file_copy(add1,add1+1);
+        file_copy(add2,add2+1);
+        FILE* ff1 =fopen(add1,"r+");
+        FILE* ff2 =fopen(add2,"r+");
+        char* tt1 = (char*)malloc(sizeof(char)*10000);
+        char* tt2 = (char*)malloc(sizeof(char)*10000);
+        int ln = 0;
+        char c1,c2;
+        while(1){
+            int counter = 0;
+            c1 = getc(ff1);
+            while(c1 != '\n' && c1 != EOF){
+                tt1[counter] = c1;
+                counter ++;
+                c1 = getc(ff1);
+            }
+            tt1[counter] = '\0';
+            counter = 0;
+            c2 = getc(ff2);
+            while(c2 != '\n' && c2 != EOF){
+                tt2[counter] = c2;
+                counter ++;
+                c2 = getc(ff2);
+            }
+            tt2[counter] = '\0';
+            ln ++;
+            if(strcmp(tt1,tt2)){
+                printf("============ #%d ============\n",ln);
+                printf("%s\n",tt1);
+                printf("%s\n",tt2);
+            }
+            if(c1 == EOF || c2 == EOF){
+                break;
+            }
+        }
+        if(c1 == EOF && c2 != EOF){
+            ln++;
+            printf("remaining charachters of file 2:\n>>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n",ln,e2+1);
+            c2 = getc(ff2);
+            while(c2 != EOF){
+                printf("%c",c2);
+                c2 = getc(ff2);
+            }
+            printf("%c\n",c2);
+        }
+        if(c2 == EOF && c1 != EOF){
+            ln++;
+            printf("remaining charachters of file 1:\n>>>>>>>>>>>> #%d - #%d >>>>>>>>>>>>\n",ln,e1+1);
+            c1 = getc(ff1);
+            while(c1 != EOF){
+                printf("%c",c1);
+                c1 = getc(ff1);
+            }
+            printf("%c\n",c1);
+        }
+        fclose(ff1);
+        fclose(ff2);
+    }
+}
+
 int main(){
     mkdir("root");
     mkdir("oot");
@@ -990,6 +1079,10 @@ int main(){
 
         else if(strcmp(*(line),"auto-indent") == 0 && strcmp(*(line +1 ),"-file") == 0 && num_of_word == 3){
             my_auto_indent(*(line+2));
+        }
+
+        else if(strcmp(*(line),"compare") == 0 && num_of_word == 3){
+            file_compare(*(line+1),*(line+2));
         }
 
         else{
