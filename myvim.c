@@ -3,6 +3,19 @@
 #include<unistd.h>
 #define debug(x) printf("%s is: %d\n",#x,x)
 
+void file_copy(char* add1,char*add2){
+    make_dir(add2);
+    FILE* file1 = fopen(add1,"r+");
+    FILE* file2 = fopen(add2,"w+");
+    char c = getc(file1);
+    while(c!=EOF){
+        putc(c,file2);
+        c = getc(file1);
+    }
+    fclose(file1);
+    fclose(file2);
+}
+
 int num_of_char(char *address,char c){
     int num = 0;
     for(int i = 0;i<strlen(address);i++){
@@ -54,11 +67,12 @@ int check_add(char* add){
         if(c == '/') nn++;
     }
     tmp[i] = 'a';tmp[i+1] = '.';tmp[i+2] = 't';tmp[i+3] = 'x';tmp[i+4] = 't';tmp[i+5] = '\0';
-
-    FILE* file = fopen(tmp,"w+");
+    int was_valid = 0;
+    if(access(tmp, F_OK) == 0) was_valid = 1;
+    FILE* file = fopen(tmp,"a+");
     fclose(file);
     int a = 1 + (access(tmp, F_OK));
-    remove(tmp);
+    if(was_valid == 0) remove(tmp);
     return a;
 }
 
@@ -74,7 +88,6 @@ void createfile(char* add){
         FILE* file = fopen(add,"a+");
         fclose(file);
     }
-
 }
 
 void make_pos(char* pos, int* l,int* c){
@@ -121,23 +134,10 @@ char* enter_and_gume_and_star(int length,char* text,char c){
     return tmp;
 }
 
-void my_insert(char *add,char *text,char* pos){
-    int line = 0, ch = 0;
-    make_pos(pos,&line,&ch);
-
-    int length = strlen(text);
-    text = enter_and_gume_and_star(length,text,'\n');
-    text = enter_and_gume_and_star(length,text,'*');
-    text = enter_and_gume_and_star(length,text,'"');
-
-    if(access(add, F_OK ) == -1){
-        if(check_add(add) == 1)
-            printf("The file haven't been created before!\n");
-        else
-            printf("Incorrect Address!\n");
-        return;
-    }
-    else{
+void insert2(char *add,char *text,int line,int ch){
+        text = enter_and_gume_and_star(strlen(text),text,'n');
+        text = enter_and_gume_and_star(strlen(text),text,'*');
+        text = enter_and_gume_and_star(strlen(text),text,'"');
         int is_done = 0;
         FILE* file = fopen(add,"a+");        FILE* file_tmp = fopen("tmp.txt","w+");
         int ln = 1,chr = -1;
@@ -174,6 +174,19 @@ void my_insert(char *add,char *text,char* pos){
         }
         fclose(file);
         fclose(file_tmp);
+}
+
+void my_insert(char *add,char *text,int line,int ch){
+    if(access(add, F_OK ) == -1){
+        if(check_add(add) == 1)
+            printf("The file haven't been created before!\n");
+        else
+            printf("Incorrect Address!\n");
+        return;
+    }
+    else{
+        file_copy(add,add+1);
+        insert2(add,text,line,ch);
     }
 }
 
@@ -186,6 +199,7 @@ void my_cat(char* add){
         return;
     }
     else{
+        file_copy(add,add+1);
         FILE* file = fopen(add,"r+");
         char c = getc(file);
         while(c != EOF){
@@ -195,9 +209,6 @@ void my_cat(char* add){
         fclose(file);
         printf("\n");
     }
-
-
-
 }
 
 int make_num(char* num){
@@ -209,18 +220,7 @@ int make_num(char* num){
     return my_num;
 }
 
-void my_remove(char *add,char *pos,char* size,char mode){
-    int line = 0, ch = 0;
-    make_pos(pos,&line,&ch);
-    int sz = make_num(size);
-    if(access(add, F_OK ) == -1){
-        if(check_add(add) == 1)
-            printf("The file haven't been created before!\n");
-        else
-            printf("Incorrect Address!\n");
-        return;
-    }
-    else{
+void remove2(char *add,int line,int ch,int sz,char mode){
         int counter = 0,ln = 1,chr = -1,start=0,end=0;
         FILE* file = fopen(add,"a+");        FILE* file_tmp = fopen("tmp.txt","w+");
         char c = getc(file);
@@ -269,6 +269,20 @@ void my_remove(char *add,char *pos,char* size,char mode){
         }
         fclose(file);
         fclose(file_tmp);
+}
+
+
+void my_remove(char *add,int line,int ch,int sz,char mode){
+    if(access(add, F_OK ) == -1){
+        if(check_add(add) == 1)
+            printf("The file haven't been created before!\n");
+        else
+            printf("Incorrect Address!\n");
+        return;
+    }
+    else{
+        file_copy(add,add+1);
+        remove2(add,line,ch,sz,mode);
     }
 }
 
@@ -284,6 +298,7 @@ void my_copy(char *add,char *pos,char* size,char mode){
         return;
     }
     else{
+        file_copy(add,add+1);
         int counter = 0,ln = 1,chr = -1,start = 0,end=0;
         FILE* file = fopen(add,"a+");
         char c = getc(file);
@@ -345,6 +360,7 @@ void my_paste(char *add,char* pos){
         return;
     }
     else{
+        file_copy(add,add+1);
         FILE* file = fopen(add,"a+");        FILE* file_tmp = fopen("tmp.txt","w+");    FILE* file_clip = fopen("clipboard.txt","r+");
         int ln = 1,chr = -1;
         int is_done = 0;
@@ -414,7 +430,7 @@ int my_cmp(char* a,char* b,int m){
 char** to_words(char*text,int*x){
     int w=0,ch=0,so = 0,sn = 0;
     char **words = (char*)malloc(sizeof(char*)*10000);
-    text = enter_and_gume_and_star(strlen(text),text,'\n');
+    text = enter_and_gume_and_star(strlen(text),text,'n');
     char c = text[0];
     *(words + w) = (char*)malloc(sizeof(char)*1000);
     for(int i = 0;c!= '\0';i++){
@@ -457,7 +473,7 @@ int fnd(char* text,char* text2){
             m = 2;
         }
         else m = 3;
-        mytext = enter_and_gume_and_star(strlen(mytext),mytext,'\n');
+        mytext = enter_and_gume_and_star(strlen(mytext),mytext,'n');
         mytext = enter_and_gume_and_star(strlen(mytext),mytext,'"');
         mytext = enter_and_gume_and_star(strlen(mytext),mytext,'*');
         if(!my_cmp(mytext,*(words2+i),m)){
@@ -488,7 +504,8 @@ void my_find(char* text,char* add,int mode,int num){
         return;
     }
     else{
-        text = enter_and_gume_and_star(strlen(text),text,'\n');
+        file_copy(add,add+1);
+        text = enter_and_gume_and_star(strlen(text),text,'n');
         int n = num_of_char(text,' ') + num_of_char(text,'\n');
         char *tt = (char*)calloc(sizeof(char),10000);
         int* word = (int*)malloc(sizeof(int)*10000);
@@ -570,8 +587,189 @@ void my_find(char* text,char* add,int mode,int num){
     }
 }
 
+void my_replace(char* add,char* text1,char* text2,int mode,int num){
+    if(access(add, F_OK ) == -1){
+        if(check_add(add) == 1)
+            printf("The file haven't been created before!\n");
+        else
+            printf("Incorrect Address!\n");
+        return;
+    }
+    else{
+        file_copy(add,add+1);
+        text1 = enter_and_gume_and_star(strlen(text1),text1,'n');
+        char* origin_text2 = (char*)malloc(sizeof(char)*strlen(text2));
+        for(int i = 0;i<=strlen(text2);i++){
+                origin_text2[i] = text2[i];
+        }
+        text2 = enter_and_gume_and_star(strlen(text2),text2,'n');
+        text2 = enter_and_gume_and_star(strlen(text2),text2,'*');
+        text2 = enter_and_gume_and_star(strlen(text2),text2,'"');
+        int l2 = strlen(text2);
+        int n = num_of_char(text1,' ') + num_of_char(text1,'\n');
+        char *tt = (char*)calloc(sizeof(char),10000);
+        int count = 0,my_count = 1,num_char = 1,num_word = 0,word_done = -1;
+        char cc = ' ';
+        int sz = chars_of_file(add);
+        while(1){
+            for(int i = 0;i<=strlen(origin_text2);i++){
+                text2[i] = origin_text2[i];
+            }
+            num_char = 1;num_word = 0;
+            int nn = 0,counter = 0,chch = 0,ll = 1;
+            FILE* file = fopen(add,"r+");
+            char c = getc(file);
+            while(c!=EOF){
+                chch++;
+                if((c == ' ' || c == '\n') && cc != ' ' && cc != '\n') num_word++;
+                if(num_char >= my_count && nn <= n){
+                    tt[counter] = c;
+                    counter++;
+                    if(c == ' ' || c == '\n') nn++;
+                }
+                if(nn>n) break;
+                cc = c;
+                c = getc(file);
+                if(nn==n && num_char >= my_count && (c== ' '|| c=='\n' || c == EOF) &&(word_done != num_word || mode == 2)){
+                    tt[counter] = '\0';
+                    if(fnd(text1,tt)){
+                        word_done = num_word;
+                        if(mode == 2 || mode == 1 && count+1 == num){
+                            remove2(add,ll,chch-strlen(tt),strlen(tt),'f');
+                            insert2(add,text2,ll,chch-strlen(tt));
+                            sz = chars_of_file(add);
+                            my_count += l2-1;
+                        }
+                        count++;
+                        break;
+                    }
+                }
+                if(c!=EOF) num_char++;
+                if(cc == '\n'){
+                    ll++;
+                    chch = 0;
+                }
+            }
+            if(c == EOF && cc != ' ' && cc != '\n'){
+                num_word++;
+            }
+            fclose(file);
+            if(nn<n || my_count > sz){break;}
+            my_count++;
+
+        }
+        if(count == 0) printf("No such expression!\n");
+    }
+}
+
+int grep_help(char* text,char* pat){
+    char* pat2 = (char*)malloc(sizeof(char)*(strlen(pat)+1));
+    for(int i = 0;i<strlen(pat);i++){
+        pat2[i] = pat[i];
+    }
+    pat2[strlen(pat)] = '\0';
+    pat2 = enter_and_gume_and_star(strlen(pat),pat,'n');
+    pat2 = enter_and_gume_and_star(strlen(pat),pat,'"');
+    pat2 = enter_and_gume_and_star(strlen(pat),pat,'*');
+    int l = strlen(text);
+    for(int i = 0; i<l;i++){
+        char* tmp = (char*)malloc(sizeof(char)*(l+1));
+        for(int j = 0; j<l-i;j++){
+            tmp[j] = text[j+i];
+            tmp[j+1] = '\0' ;
+            if(strcmp(tmp,pat2) == 0) return 1;
+        }
+    }
+    return 0;
+}
+
+void my_grep(char mode, char* pat,char** files,int n){
+    int * vaild = (int*)malloc(sizeof(int)*n);
+    int cn = 0;
+    for(int k = 0; k<n; k++){
+        vaild[k] = 0;
+    }
+    for(int i = 0; i<n; i++){
+        char* add = *(files + i);
+        if(access(add, F_OK ) == -1){
+            if(check_add(add) == 1)
+                printf("file%d: The file haven't been created before!\n",i+1);
+            else
+                printf("Address%d: Incorrect Address!\n",i+1);
+        }
+        else{
+            file_copy(add,add+1);
+            FILE* ff =fopen(add,"r+");
+            char* tt = (char*)malloc(sizeof(char)*10000);
+            int counter = 0;
+            char c = getc(ff);
+            while(c!=EOF){
+                tt[counter] = c;
+                counter ++;
+                if(c == '\n'){
+                    tt[counter-1] = '\0';
+                    if(grep_help(tt,pat) == 1){
+                        cn ++;
+                        if(mode == 'o'){
+                            printf("%s : %s\n",add,tt);
+                        }
+                        if(mode == 'i'){
+                            vaild[i] = 1;
+                        }
+                    }
+                    counter = 0;
+                }
+                c = getc(ff);
+            }
+            tt[counter] = '\0';
+            if(grep_help(tt,pat) == 1){
+                        cn ++;
+                        if(mode == 'o'){
+                            printf("%s : %s\n",add,tt);
+                        }
+                        if(mode == 'i'){
+                            vaild[i] = 1;
+                        }
+                    }
+            fclose(ff);
+        }
+    }
+    if(mode == 'i'){
+        for(int k = 0; k<n; k++){
+            if(vaild[k] == 1) printf("%s\n",files[k]);
+        }
+    }
+    if(mode == 'c'){
+        printf("%d\n",cn);
+    }
+}
+
+void my_undo(char* add){
+    if(access(add, F_OK ) == -1 && access(add+1, F_OK ) == -1){
+        if(check_add(add) == 1)
+            printf("The file haven't been created before!\n");
+        else
+            printf("Incorrect Address!\n");
+        return;
+    }
+    if(access(add, F_OK ) == -1){
+        file_copy(add+1,add);
+        remove(add+1);
+        return;
+    }
+    if(access(add+1, F_OK ) == -1){
+        file_copy(add,add+1);
+        remove(add);
+        return;
+    }
+    file_copy(add,"tmp2.txt");
+    file_copy(add+1,add);
+    file_copy("tmp2.txt",add+1);
+}
+
 int main(){
     mkdir("root");
+    mkdir("oot");
     int finish = 0;
     while(1){
         //too many input:
@@ -581,7 +779,6 @@ int main(){
                 bb = getchar();
             }
         }
-
         int num_of_word = 0;    finish = 0;
         char** line = (char*)malloc(sizeof(char*)*20);
         //each loop gets one word
@@ -635,7 +832,9 @@ int main(){
         }
 
         else if(num_of_word == 7 && strcmp(*(line),"insertstr") == 0 && strcmp(*(line+1),"-file") == 0 && strcmp(*(line+3),"-str") == 0 && strcmp(*(line+5),"-pos") == 0){
-            my_insert(*(line+2), *(line + 4),*(line+6));
+            int lne = 0, ch = 0;
+            make_pos(*(line+6),&lne,&ch);
+            my_insert(*(line+2), *(line + 4),lne,ch);
         }
 
         else if(num_of_word == 3 && strcmp(*(line),"cat") == 0 && strcmp(*(line+1),"-file") == 0 ){
@@ -644,7 +843,10 @@ int main(){
 
         else if(num_of_word == 8 && strcmp(*(line),"removestr") == 0 && strcmp(*(line+1),"-file") == 0 && strcmp(*(line+3),"-pos") == 0
                 && strcmp(*(line+5),"-size") == 0 && (strcmp(*(line+7),"-b") == 0 || strcmp(*(line+7),"-f") == 0 )){
-            my_remove(*(line+2), *(line + 4),*(line+6),*(*(line+7)+1));
+            int lne = 0, ch = 0;
+            make_pos(*(line+4),&lne,&ch);
+            int sz = make_num(*(line+6));
+            my_remove(*(line+2), lne,ch,sz,*(*(line+7)+1));
         }
 
         else if(num_of_word == 8 && strcmp(*(line),"copystr") == 0 && strcmp(*(line+1),"-file") == 0 && strcmp(*(line+3),"-pos") == 0
@@ -654,8 +856,11 @@ int main(){
 
         else if(num_of_word == 8 && strcmp(*(line),"cutstr") == 0 && strcmp(*(line+1),"-file") == 0 && strcmp(*(line+3),"-pos") == 0
                 && strcmp(*(line+5),"-size") == 0 && (strcmp(*(line+7),"-b") == 0 || strcmp(*(line+7),"-f") == 0 )){
+            int lne = 0, ch = 0;
+            make_pos(*(line+4),&lne,&ch);
+            int sz = make_num(*(line+6));
             my_copy(*(line+2), *(line + 4),*(line+6),*(*(line+7)+1));
-            my_remove(*(line+2), *(line + 4),*(line+6),*(*(line+7)+1));
+            my_remove(*(line+2), lne,ch,sz,*(*(line+7)+1));
         }
 
         else if(num_of_word == 5 && strcmp(*(line),"pastestr") == 0 && strcmp(*(line+1),"-file") == 0 && strcmp(*(line+3),"-pos") == 0){
@@ -675,6 +880,22 @@ int main(){
             else if(num_of_word == 8 && strcmp(*(line+5),"-byword") == 0 && strcmp(*(line+6),"-at") == 0) my_find(*(line+2), *(line + 4),7,make_num(*(line + 7)));
             else if(num_of_word == 8 && strcmp(*(line+5),"-at") == 0 && strcmp(*(line+7),"-byword") == 0) my_find(*(line+2), *(line + 4),7,make_num(*(line+6)));
             else printf("Invalid options!\n");
+        }
+
+        else if(strcmp(*(line),"replace") == 0 && strcmp(*(line+1),"-str1") == 0 && strcmp(*(line+3),"-str2") == 0 && strcmp(*(line+5),"-file") == 0){
+            if(num_of_word == 7) my_replace(*(line+6), *(line + 2), *(line + 4),1,1);
+            else if(num_of_word == 8 && strcmp(*(line+7),"-all") == 0) my_replace(*(line+6), *(line + 2), *(line + 4),2,0);
+            else if(num_of_word == 9 && strcmp(*(line+7),"-at") == 0 ) my_replace(*(line+6), *(line + 2), *(line + 4),1,make_num(*(line+8)));
+            else printf("Invalid options!\n");
+        }
+
+        else if(strcmp(*(line),"grep") == 0){
+            if(strcmp(*(line+1),"-str") == 0 && strcmp(*(line+3),"-files") == 0) my_grep('o', *(line + 2), line + 4,num_of_word - 4);
+            else if((strcmp(*(line+1),"-c") == 0 || strcmp(*(line+1),"-i") == 0)&& strcmp(*(line+2),"-str") == 0 && strcmp(*(line+4),"-files") == 0) my_grep(*(*(line+1)+1), *(line + 3),line + 5,num_of_word - 5);
+        }
+
+        else if(strcmp(*(line),"undo") == 0 && strcmp(*(line +1 ),"-file") == 0 && num_of_word == 3){
+            my_undo(*(line+2));
         }
 
         else{
