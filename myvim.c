@@ -1,7 +1,17 @@
 #include <stdio.h>
 #include <direct.h>
 #include<unistd.h>
+#include <dirent.h>
 #define debug(x) printf("%s is: %d\n",#x,x)
+
+struct folder{
+    char* name;
+    struct folder* father;
+};
+struct file{
+    char* name;
+    struct folder* father;
+};
 
 void file_copy(char* add1,char*add2){
     make_dir(add2);
@@ -946,6 +956,51 @@ void file_compare(char*add1,char*add2){
     }
 }
 
+char* add_str(char*a,char*b){
+    char*c = (char*)malloc(sizeof(char)*((strlen(a)+strlen(b)+2)));
+    int i;
+    for(i = 0; i<strlen(a); i++){
+        c[i] = a[i];
+    }
+    c[i] = '/';
+    i++;
+    for(;i<=strlen(a)+strlen(b); i++){
+        c[i] = b[i-strlen(a)-1];
+    }
+    c[i] = '\0';
+    return c;
+}
+
+void in_dirs(DIR* my_d,int depth,char* add,int max){
+    struct dirent * my_dir;
+    while((my_dir = readdir(my_d)) != NULL){
+        DIR* d = opendir(add_str(add,my_dir -> d_name));
+        if(strcmp(my_dir -> d_name,".") == 0 || strcmp(my_dir -> d_name,"..") == 0){
+            closedir(d);
+            continue;
+        }
+        else if(d){
+            printf(" ");
+            for(int i = 0;i<depth-1;i++){
+                printf(" ");printf(" ");printf(" ");printf(" ");
+            }
+            printf("|___");
+            printf("%s\n",my_dir -> d_name);
+            if (depth < max || max == -1)in_dirs(d,depth+1,add_str(add,my_dir -> d_name),max);
+            closedir(d);
+            continue;
+        }
+        else{
+            printf(" ");
+            for(int i = 0;i<depth-1;i++){
+                printf(" ");printf(" ");printf(" ");printf(" ");
+            }
+            printf("|___");
+            printf("%s\n",my_dir -> d_name);
+        }
+    }
+}
+
 int main(){
     mkdir("root");
     mkdir("oot");
@@ -1083,6 +1138,24 @@ int main(){
 
         else if(strcmp(*(line),"compare") == 0 && num_of_word == 3){
             file_compare(*(line+1),*(line+2));
+        }
+
+        else if(strcmp(*(line),"tree") == 0 && num_of_word == 2){
+            int max;
+            if(*(*(line+1)) == '-'){
+                if(*(*(line+1)+1) == '1'){
+                    max = -1;
+                }
+                else{
+                    printf("Invaild depth\n");
+                    continue;
+                }
+            }
+            else max = make_num(*(line+1));
+            DIR* d = opendir("root");
+            printf("-root\n");
+            if(max !=0) in_dirs(d,1,"root",max);
+            closedir(d);
         }
 
         else{
